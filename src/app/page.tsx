@@ -1,65 +1,192 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
 
-export default function Home() {
+export default function Page() {
+
+  const [file, setFile] = useState<File | null>(null);
+  const [status, setStatus] = useState("");
+  const [q, setQ] = useState("");
+  const [a, setA] = useState("");
+
+  async function upload() {
+    if (!file) return;
+
+    setStatus("Uploading + indexing...");
+
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+
+      const res = await fetch("/api/ingest", { method: "POST", body: fd });
+      const text = await res.text();
+
+      if (!text) {
+        setStatus("Server returned empty response (check terminal).");
+        return;
+      }
+
+      const data = JSON.parse(text);
+
+      setStatus(
+        res.ok && data.ok
+          ? `Indexed ${data.file} ✅ (chunks: ${data.chunksAdded})`
+          : `Error: ${data.error || "Upload failed"}`
+      );
+    } catch (e: any) {
+      setStatus(`Error: ${e?.message || "Upload failed"}`);
+    }
+  }
+
+  async function ask() {
+
+    setA("Thinking...");
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q }),
+      });
+
+      const text = await res.text();
+
+      if (!text) {
+        setA("Server returned empty response (check terminal).");
+        return;
+      }
+
+      const data = JSON.parse(text);
+
+      if (!res.ok) {
+        setA(`Error: ${data.error || "Chat failed"}`);
+        return;
+      }
+
+      setA(data.answer || "No answer");
+
+    } catch (e: any) {
+      setA(`Chat error: ${e?.message || "Unknown error"}`);
+    }
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+
+    <div style={{
+      minHeight: "100vh",
+      background: "linear-gradient(120deg,#fff8f0,#f0f7ff)",
+      padding: "40px 20px",
+      fontFamily: "system-ui"
+    }}>
+
+      <div style={{ maxWidth: 820, margin: "auto" }}>
+
+        {/* HEADER */}
+        <div style={{
+          background: "white",
+          padding: 24,
+          borderRadius: 18,
+          boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+          marginBottom: 22
+        }}>
+          <h1 style={{ margin: 0, fontSize: 34 }}>
+            🍳 RecipeBrain AI
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p style={{ marginTop: 8, opacity: .7 }}>
+            Upload recipes → ask questions → answers come ONLY from your files (Real RAG)
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* UPLOAD CARD */}
+        <div style={{
+          background: "white",
+          padding: 22,
+          borderRadius: 18,
+          boxShadow: "0 8px 25px rgba(0,0,0,0.06)",
+          marginBottom: 22
+        }}>
+
+          <h3 style={{ marginTop: 0 }}>📂 Upload recipes</h3>
+
+          <input
+            type="file"
+            accept=".pdf,.txt"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+          />
+
+          <button
+            onClick={upload}
+            style={{
+              marginLeft: 12,
+              padding: "10px 18px",
+              borderRadius: 10,
+              border: "none",
+              background: "#ff7a18",
+              color: "white",
+              fontWeight: 600,
+              cursor: "pointer"
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Index File
+          </button>
+
+          <div style={{ marginTop: 12, opacity: .8 }}>{status}</div>
+
         </div>
-      </main>
+
+        {/* ASK CARD */}
+        <div style={{
+          background: "white",
+          padding: 22,
+          borderRadius: 18,
+          boxShadow: "0 8px 25px rgba(0,0,0,0.06)"
+        }}>
+
+          <h3 style={{ marginTop: 0 }}>🤖 Ask RecipeBrain</h3>
+
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder='Example: "How to cook chicken curry with less oil?"'
+            style={{
+              width: "100%",
+              padding: 14,
+              borderRadius: 12,
+              border: "1px solid #ddd",
+              fontSize: 16
+            }}
+          />
+
+          <button
+            onClick={ask}
+            style={{
+              marginTop: 14,
+              padding: "12px 22px",
+              borderRadius: 12,
+              border: "none",
+              background: "#2563eb",
+              color: "white",
+              fontWeight: 600,
+              cursor: "pointer"
+            }}
+          >
+            Ask AI
+          </button>
+
+          <div style={{
+            whiteSpace: "pre-wrap",
+            marginTop: 18,
+            background: "#fafafa",
+            padding: 16,
+            borderRadius: 14,
+            border: "1px solid #eee",
+            minHeight: 80
+          }}>
+            {a}
+          </div>
+
+        </div>
+
+      </div>
     </div>
   );
 }
