@@ -8,22 +8,29 @@ export type ChunkVec = {
   embedding: number[]; // vector
 };
 
-const DATA_PATH = path.join(process.cwd(), "src", "data", "vectors.json");
+// ✅ Vercel serverless = read-only project directory.
+// Only /tmp is writable. Locally we keep src/data/vectors.json.
+function getDataPath() {
+  if (process.env.VERCEL) return "/tmp/vectors.json";
+  return path.join(process.cwd(), "src", "data", "vectors.json");
+}
 
-function ensureFile() {
-  const dir = path.dirname(DATA_PATH);
+function ensureFile(p: string) {
+  const dir = path.dirname(p);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(DATA_PATH)) fs.writeFileSync(DATA_PATH, JSON.stringify([]));
+  if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify([]));
 }
 
 export function loadVectors(): ChunkVec[] {
-  ensureFile();
-  return JSON.parse(fs.readFileSync(DATA_PATH, "utf8"));
+  const p = getDataPath();
+  ensureFile(p);
+  return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
 export function saveVectors(v: ChunkVec[]) {
-  ensureFile();
-  fs.writeFileSync(DATA_PATH, JSON.stringify(v, null, 2));
+  const p = getDataPath();
+  ensureFile(p);
+  fs.writeFileSync(p, JSON.stringify(v, null, 2));
 }
 
 export function cosineSim(a: number[], b: number[]) {
