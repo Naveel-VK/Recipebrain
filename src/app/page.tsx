@@ -92,7 +92,7 @@ export default function Page() {
             🍳 RecipeBrain AI
           </h1>
           <p style={{ marginTop: 8, opacity: .7 }}>
-            Upload recipes → ask questions → answers come ONLY from your files (Real RAG)
+            Upload recipes 
           </p>
         </div>
 
